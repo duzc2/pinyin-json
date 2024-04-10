@@ -7,6 +7,7 @@ const hanzi_pinyin_table = {};
 const hanzi_no_tone_pinyin_table = {};
 const pinyin_hanzi_table = {};
 const no_tone_pinyin_hanzi_table = {};
+const hanzi_by_frequency = [];
 
 let hanzi_array;
 
@@ -17,10 +18,10 @@ function fetch_hanzidb(page = 1) {
         page
       }
     })
-    .then(function(response) {
+    .then(function (response) {
       console.log("Page " + page);
       const $ = cheerio.load(response.data);
-      $("table tr:not(:first-child)").each(function() {
+      $("table tr:not(:first-child)").each(function () {
         const hanzi = $(this)
           .find("td:first-child")
           .text();
@@ -31,12 +32,14 @@ function fetch_hanzidb(page = 1) {
         console.log(pinyin);
 
         add_hanzi_pinyin(hanzi, pinyin);
+        save_json_files();
       });
 
       fetch_hanzidb(page + 1);
     })
-    .catch(function(response) {
-      console.log(response.status);
+    .catch(function (response) {
+      console.log('stop on page ', page, response.status);
+      save_json_files();
       hanzi_array = Object.keys(hanzi_pinyin_table);
       fetch_polyphone();
     });
@@ -56,9 +59,9 @@ function fetch_polyphone(index = 0) {
   console.log(hanzi);
   axios
     .get("http://hanzidb.org/character/" + encodeURIComponent(hanzi))
-    .then(function(response) {
+    .then(function (response) {
       const $ = cheerio.load(response.data);
-      $(".ceent > div:first-child span").each(function() {
+      $(".ceent > div:first-child span").each(function () {
         const pinyin = $(this)
           .text()
           .toLocaleLowerCase();
@@ -67,7 +70,7 @@ function fetch_polyphone(index = 0) {
       });
       fetch_polyphone(index + 1);
     })
-    .catch(function(response) {
+    .catch(function (response) {
       console.log("Error while fetching data of " + hanzi);
       fetch_polyphone(index + 1);
     });
@@ -84,6 +87,7 @@ function add_hanzi_pinyin(hanzi, pinyin) {
 
   if (!hanzi_pinyin_table[hanzi]) {
     hanzi_pinyin_table[hanzi] = [];
+    hanzi_by_frequency.push(hanzi);
   }
   hanzi_pinyin_table[hanzi] = _.union(hanzi_pinyin_table[hanzi], [pinyin]);
 
@@ -114,7 +118,7 @@ function save_json_files() {
     "hanzi-pinyin-table.json",
     JSON.stringify(hanzi_pinyin_table),
     "utf8",
-    function(err) {
+    function (err) {
       if (err) console.log(err);
     }
   );
@@ -123,7 +127,7 @@ function save_json_files() {
     "hanzi-no-tone-pinyin-table.json",
     JSON.stringify(hanzi_no_tone_pinyin_table),
     "utf8",
-    function(err) {
+    function (err) {
       if (err) console.log(err);
     }
   );
@@ -132,7 +136,7 @@ function save_json_files() {
     "pinyin-hanzi-table.json",
     JSON.stringify(pinyin_hanzi_table),
     "utf8",
-    function(err) {
+    function (err) {
       if (err) console.log(err);
     }
   );
@@ -141,7 +145,15 @@ function save_json_files() {
     "no-tone-pinyin-hanzi-table.json",
     JSON.stringify(no_tone_pinyin_hanzi_table),
     "utf8",
-    function(err) {
+    function (err) {
+      if (err) console.log(err);
+    }
+  );
+  fs.writeFile(
+    "hanzi_by_frequency.json",
+    JSON.stringify(hanzi_by_frequency),
+    "utf8",
+    function (err) {
       if (err) console.log(err);
     }
   );
